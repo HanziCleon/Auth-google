@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>You're Offline - DongTube</title>
+<link rel="icon" type="image/png" href="https://b.top4top.io/p_35449hn0x0.jpg">
+<style>
+:root {
+  /* Dark theme with yellow accent */
+  --bg: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 30%, #2a2a2a 60%, #3a3a3a 100%);
+  --bg-secondary: rgba(15, 15, 15, 0.9);
+  --card: rgba(25, 25, 25, 0.8);
+  --accent: #ffd700;
+  --accent2: #ffb000;
+  --text: #ffffff;
+  --text-secondary: #b0b0b0;
+  --text-muted: #808080;
+  --radius: 12px;
+  --transition: all 0.3s ease;
+  --shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] {
+  --bg: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 30%, #dee2e6 60%, #ced4da 100%);
+  --bg-secondary: rgba(248, 249, 250, 0.9);
+  --card: rgba(255, 255, 255, 0.9);
+  --text: #212529;
+  --text-secondary: #495057;
+  --text-muted: #6c757d;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.offline-container {
+  text-align: center;
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  border-radius: var(--radius);
+  padding: 3rem 2rem;
+  box-shadow: var(--shadow);
+  max-width: 500px;
+  width: 100%;
+}
+
+.offline-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.8;
+}
+
+.offline-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 1rem;
+}
+
+.offline-message {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.offline-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.btn {
+  background: var(--accent);
+  color: white;
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn:hover {
+  background: var(--accent2);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.btn-secondary:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.connection-status {
+  margin-top: 2rem;
+  padding: 1rem;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+}
+
+.connection-status.offline {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+.connection-status.online {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@media (max-width: 480px) {
+  .offline-container {
+    padding: 2rem 1.5rem;
+  }
+  
+  .offline-title {
+    font-size: 1.5rem;
+  }
+  
+  .offline-message {
+    font-size: 1rem;
+  }
+  
+  .offline-actions {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+  }
+}
+</style>
+</head>
+<body>
+  <div class="offline-container">
+    <div class="offline-icon pulse">📡</div>
+    <h1 class="offline-title">You're Offline</h1>
+    <p class="offline-message">
+      It looks like you've lost your internet connection. Don't worry, some content might still be available from your cache.
+    </p>
+    
+    <div class="offline-actions">
+      <button class="btn" onclick="location.reload()">Try Again</button>
+      <a href="/" class="btn btn-secondary">Go to Homepage</a>
+    </div>
+    
+    <div id="connectionStatus" class="connection-status offline">
+      🔴 You are currently offline
+    </div>
+  </div>
+
+  <script>
+    // Monitor connection status
+    function updateConnectionStatus() {
+      const statusEl = document.getElementById('connectionStatus');
+      
+      if (navigator.onLine) {
+        statusEl.className = 'connection-status online';
+        statusEl.innerHTML = '🟢 Connection restored!';
+        setTimeout(() => {
+          location.reload();
+        }, 2000);
+      } else {
+        statusEl.className = 'connection-status offline';
+        statusEl.innerHTML = '🔴 You are currently offline';
+      }
+    }
+
+    // Listen for connection changes
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+
+    // Initial check
+    updateConnectionStatus();
+
+    // Auto-retry every 10 seconds
+    setInterval(() => {
+      if (navigator.onLine) {
+        location.reload();
+      }
+    }, 10000);
+  </script>
+</body>
+</html>
