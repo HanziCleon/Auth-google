@@ -1,4 +1,3 @@
-"use client";
 import "./globals.css";
 import Script from "next/script";
 
@@ -12,7 +11,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         {children}
-        {/* Google Identity Services */}
+        {/* Google Identity Services SDK */}
         <Script src="https://accounts.google.com/gsi/client" async defer />
       </body>
     </html>
