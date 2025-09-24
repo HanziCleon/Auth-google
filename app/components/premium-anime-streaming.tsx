@@ -1,0 +1,1523 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Play, Star, Heart, Bell, User, Settings, History, BookOpen, Filter, Moon, Sun, Menu, X, ChevronDown, ChevronRight, Eye, Clock, Calendar, Users, MessageCircle, Share2, Download, Bookmark, ThumbsUp, Home, Tv, Grid, List } from 'lucide-react';
+
+// Router implementation
+const Router = ({ children }) => {
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const handlePopState = () => setCurrentPath(window.location.pathname);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigate = (path) => {
+    window.history.pushState({}, '', path);
+    setCurrentPath(path);
+  };
+
+  return React.Children.map(children, child => 
+    React.cloneElement(child, { currentPath, navigate })
+  );
+};
+
+// Mock data - In production, this would come from API
+const mockAnimeData = [
+  {
+    id: 1,
+    title: "Attack on Titan Final Season",
+    poster: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300&h=400&fit=crop",
+    rating: 9.2,
+    year: 2024,
+    status: "Ongoing",
+    genre: ["Action", "Drama", "Fantasy"],
+    episodes: 24,
+    description: "The final battle for humanity begins as Eren's true intentions are revealed.",
+    studio: "MAPPA",
+    views: "12.5M",
+    trailer: "https://example.com/trailer.mp4"
+  },
+  {
+    id: 2,
+    title: "Demon Slayer: Infinity Castle",
+    poster: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300&h=400&fit=crop",
+    rating: 8.9,
+    year: 2024,
+    status: "Completed",
+    genre: ["Action", "Supernatural", "Historical"],
+    episodes: 12,
+    description: "Tanjiro faces his greatest challenge in the mysterious Infinity Castle.",
+    studio: "Ufotable",
+    views: "8.3M"
+  },
+  {
+    id: 3,
+    title: "Jujutsu Kaisen Season 3",
+    poster: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300&h=400&fit=crop",
+    rating: 8.7,
+    year: 2024,
+    status: "Ongoing",
+    genre: ["Action", "School", "Supernatural"],
+    episodes: 24,
+    description: "The Culling Game arc brings unprecedented danger to the jujutsu world.",
+    studio: "MAPPA",
+    views: "15.2M"
+  }
+];
+
+// Theme Context
+const ThemeContext = React.createContext();
+
+const AnimeStreamingApp = () => {
+  const [currentPath, setCurrentPath] = useState('/');
+  const [theme, setTheme] = useState('dark');
+  const [user, setUser] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGenre, setSelectedGenre] = useState('All');
+  const [viewMode, setViewMode] = useState('grid');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [watchHistory, setWatchHistory] = useState([]);
+  const [watchlist, setWatchlist] = useState([]);
+  const [userRatings, setUserRatings] = useState({});
+  
+  // Mock user data
+  useEffect(() => {
+    // Simulate Google Auth
+    setUser({
+      id: 'user123',
+      name: 'Anime Fan',
+      email: 'animefan@gmail.com',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
+      subscription: 'Premium'
+    });
+  }, []);
+
+  const navigate = (path) => {
+    setCurrentPath(path);
+    window.history.pushState({}, '', path);
+    setSidebarOpen(false);
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  const addToWatchlist = (anime) => {
+    setWatchlist(prev => [...prev, anime]);
+  };
+
+  const rateAnime = (animeId, rating) => {
+    setUserRatings(prev => ({ ...prev, [animeId]: rating }));
+  };
+
+  const themes = {
+    dark: {
+      bg: 'bg-gray-900',
+      surface: 'bg-gray-800',
+      surfaceHover: 'hover:bg-gray-700',
+      text: 'text-white',
+      textSecondary: 'text-gray-300',
+      border: 'border-gray-700',
+      accent: 'bg-purple-600 hover:bg-purple-700',
+      input: 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
+    },
+    light: {
+      bg: 'bg-gray-50',
+      surface: 'bg-white',
+      surfaceHover: 'hover:bg-gray-50',
+      text: 'text-gray-900',
+      textSecondary: 'text-gray-600',
+      border: 'border-gray-200',
+      accent: 'bg-purple-600 hover:bg-purple-700',
+      input: 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+    }
+  };
+
+  const currentTheme = themes[theme];
+
+  // Navigation Component
+  const Sidebar = () => (
+    <div className={`fixed left-0 top-0 h-full w-64 ${currentTheme.surface} border-r ${currentTheme.border} transform transition-transform duration-300 z-50 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className={`text-2xl font-bold ${currentTheme.text} bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent`}>
+            AnimeStream+
+          </h1>
+          <button onClick={() => setSidebarOpen(false)} className="lg:hidden">
+            <X className={currentTheme.textSecondary} size={24} />
+          </button>
+        </div>
+        
+        <nav className="space-y-2">
+          {[
+            { path: '/', icon: Home, label: 'Home' },
+            { path: '/trending', icon: Tv, label: 'Trending' },
+            { path: '/genres', icon: Grid, label: 'Genres' },
+            { path: '/watchlist', icon: Bookmark, label: 'My Watchlist' },
+            { path: '/history', icon: History, label: 'History' },
+            { path: '/profile', icon: User, label: 'Profile' }
+          ].map(({ path, icon: Icon, label }) => (
+            <button
+              key={path}
+              onClick={() => navigate(path)}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                currentPath === path 
+                  ? `${currentTheme.accent} text-white` 
+                  : `${currentTheme.textSecondary} ${currentTheme.surfaceHover}`
+              }`}
+            >
+              <Icon size={20} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
+    </div>
+  );
+
+  // Header Component
+  const Header = () => (
+    <header className={`${currentTheme.surface} border-b ${currentTheme.border} sticky top-0 z-40`}>
+      <div className="px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className={`lg:hidden ${currentTheme.textSecondary}`}
+            >
+              <Menu size={24} />
+            </button>
+            
+            <div className="relative flex-1 max-w-md">
+              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${currentTheme.textSecondary}`} size={20} />
+              <input
+                type="text"
+                placeholder="Search anime..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-full pl-10 pr-4 py-2 rounded-lg ${currentTheme.input} focus:ring-2 focus:ring-purple-500 focus:outline-none`}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={toggleTheme}
+              className={`p-2 rounded-lg ${currentTheme.surfaceHover} ${currentTheme.textSecondary}`}
+            >
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            
+            <button className={`relative p-2 rounded-lg ${currentTheme.surfaceHover} ${currentTheme.textSecondary}`}>
+              <Bell size={20} />
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+            </button>
+
+            <div className="flex items-center space-x-2">
+              <img src={user?.avatar} alt={user?.name} className="w-8 h-8 rounded-full" />
+              <span className={`hidden md:inline ${currentTheme.text} font-medium`}>{user?.name}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+
+  // Anime Card Component
+  const AnimeCard = ({ anime, size = 'normal' }) => {
+    const [isHovered, setIsHovered] = useState(false);
+    
+    return (
+      <div 
+        className={`relative group cursor-pointer transform transition-all duration-300 hover:scale-105 ${
+          size === 'large' ? 'w-full h-96' : 'w-48 h-72'
+        }`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={() => navigate(`/anime/${anime.id}`)}
+      >
+        <div className={`relative overflow-hidden rounded-xl ${currentTheme.surface} shadow-lg`}>
+          <img
+            src={anime.poster}
+            alt={anime.title}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+          />
+          
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <h3 className="text-white font-bold text-sm mb-1 line-clamp-2">{anime.title}</h3>
+            <div className="flex items-center space-x-2 text-xs text-gray-300">
+              <div className="flex items-center space-x-1">
+                <Star className="text-yellow-400" size={12} fill="currentColor" />
+                <span>{anime.rating}</span>
+              </div>
+              <span>•</span>
+              <span>{anime.year}</span>
+              <span>•</span>
+              <span>{anime.episodes} episodes</span>
+            </div>
+          </div>
+
+          {isHovered && (
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+              <div className="text-center">
+                <button className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mb-3 mx-auto hover:bg-purple-700 transition-colors">
+                  <Play size={20} className="text-white ml-1" fill="currentColor" />
+                </button>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToWatchlist(anime);
+                    }}
+                    className="p-2 bg-gray-800/80 rounded-full hover:bg-gray-700/80 transition-colors"
+                  >
+                    <Bookmark size={16} className="text-white" />
+                  </button>
+                  <button 
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-2 bg-gray-800/80 rounded-full hover:bg-gray-700/80 transition-colors"
+                  >
+                    <Heart size={16} className="text-white" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="absolute top-2 right-2">
+            <span className={`px-2 py-1 text-xs font-bold rounded ${
+              anime.status === 'Ongoing' ? 'bg-green-500' : 'bg-blue-500'
+            } text-white`}>
+              {anime.status}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Home Page Component
+  const HomePage = () => {
+    const [featuredAnime] = useState(mockAnimeData[0]);
+    const [filteredAnime, setFilteredAnime] = useState(mockAnimeData);
+
+    useEffect(() => {
+      let filtered = mockAnimeData;
+      
+      if (searchQuery) {
+        filtered = filtered.filter(anime =>
+          anime.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          anime.genre.some(g => g.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+      }
+      
+      if (selectedGenre !== 'All') {
+        filtered = filtered.filter(anime =>
+          anime.genre.includes(selectedGenre)
+        );
+      }
+      
+      setFilteredAnime(filtered);
+    }, [searchQuery, selectedGenre]);
+
+    return (
+      <div className="space-y-8">
+        {/* Featured Anime */}
+        <div className="relative h-96 rounded-2xl overflow-hidden">
+          <img
+            src={featuredAnime.poster}
+            alt={featuredAnime.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-black/20" />
+          
+          <div className="absolute left-8 bottom-8 max-w-lg">
+            <h1 className="text-4xl font-bold text-white mb-4">{featuredAnime.title}</h1>
+            <p className="text-gray-300 mb-4 line-clamp-3">{featuredAnime.description}</p>
+            
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="flex items-center space-x-1">
+                <Star className="text-yellow-400" size={16} fill="currentColor" />
+                <span className="text-white font-bold">{featuredAnime.rating}</span>
+              </div>
+              <span className="text-gray-300">•</span>
+              <span className="text-gray-300">{featuredAnime.year}</span>
+              <span className="text-gray-300">•</span>
+              <span className="text-gray-300">{featuredAnime.episodes} episodes</span>
+            </div>
+
+            <div className="flex space-x-4">
+              <button 
+                onClick={() => navigate(`/watch/${featuredAnime.id}/1`)}
+                className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
+              >
+                <Play size={20} fill="currentColor" />
+                <span>Watch Now</span>
+              </button>
+              <button 
+                onClick={() => addToWatchlist(featuredAnime)}
+                className="flex items-center space-x-2 bg-gray-800/80 hover:bg-gray-700/80 text-white px-6 py-3 rounded-lg font-bold transition-colors"
+              >
+                <Bookmark size={20} />
+                <span>Add to List</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h2 className={`text-2xl font-bold ${currentTheme.text}`}>Browse Anime</h2>
+            <select
+              value={selectedGenre}
+              onChange={(e) => setSelectedGenre(e.target.value)}
+              className={`px-4 py-2 rounded-lg ${currentTheme.input} focus:ring-2 focus:ring-purple-500 focus:outline-none`}
+            >
+              <option value="All">All Genres</option>
+              <option value="Action">Action</option>
+              <option value="Drama">Drama</option>
+              <option value="Fantasy">Fantasy</option>
+              <option value="Supernatural">Supernatural</option>
+            </select>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-lg ${viewMode === 'grid' ? currentTheme.accent : currentTheme.surfaceHover} text-white`}
+            >
+              <Grid size={20} />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg ${viewMode === 'list' ? currentTheme.accent : currentTheme.surfaceHover} text-white`}
+            >
+              <List size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Anime Grid */}
+        <div className={viewMode === 'grid' 
+          ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6"
+          : "space-y-4"
+        }>
+          {filteredAnime.map(anime => (
+            <AnimeCard key={anime.id} anime={anime} />
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Anime Detail Page
+  const AnimeDetailPage = () => {
+    const animeId = parseInt(currentPath.split('/')[2]);
+    const anime = mockAnimeData.find(a => a.id === animeId);
+    const [activeTab, setActiveTab] = useState('episodes');
+    const [userRating, setUserRating] = useState(userRatings[animeId] || 0);
+    const [comment, setComment] = useState('');
+
+    if (!anime) return <div className={`${currentTheme.text} text-center py-8`}>Anime not found</div>;
+
+    const handleRating = (rating) => {
+      setUserRating(rating);
+      rateAnime(animeId, rating);
+    };
+
+    return (
+      <div className="space-y-8">
+        {/* Hero Section */}
+        <div className="relative h-64 rounded-2xl overflow-hidden">
+          <img src={anime.poster} alt={anime.title} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            <div>
+              <h1 className={`text-3xl font-bold ${currentTheme.text} mb-2`}>{anime.title}</h1>
+              <div className="flex items-center space-x-4 text-sm">
+                <div className="flex items-center space-x-1">
+                  <Star className="text-yellow-400" size={16} fill="currentColor" />
+                  <span className={currentTheme.text}>{anime.rating}</span>
+                </div>
+                <span className={currentTheme.textSecondary}>•</span>
+                <span className={currentTheme.textSecondary}>{anime.year}</span>
+                <span className={currentTheme.textSecondary}>•</span>
+                <span className={currentTheme.textSecondary}>{anime.episodes} episodes</span>
+                <span className={currentTheme.textSecondary}>•</span>
+                <span className={currentTheme.textSecondary}>{anime.studio}</span>
+              </div>
+            </div>
+
+            <p className={currentTheme.textSecondary}>{anime.description}</p>
+
+            <div className="flex flex-wrap gap-2">
+              {anime.genre.map(genre => (
+                <span key={genre} className="px-3 py-1 bg-purple-600/20 text-purple-400 rounded-full text-sm">
+                  {genre}
+                </span>
+              ))}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-4">
+              <button 
+                onClick={() => navigate(`/watch/${anime.id}/1`)}
+                className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
+              >
+                <Play size={20} fill="currentColor" />
+                <span>Watch Now</span>
+              </button>
+              <button className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                <Bookmark size={20} />
+                <span>Add to List</span>
+              </button>
+              <button className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-bold transition-colors">
+                <Share2 size={20} />
+                <span>Share</span>
+              </button>
+            </div>
+
+            {/* Rating */}
+            <div className={`${currentTheme.surface} p-4 rounded-lg`}>
+              <h3 className={`${currentTheme.text} font-bold mb-3`}>Rate this anime</h3>
+              <div className="flex space-x-2">
+                {[1, 2, 3, 4, 5].map(star => (
+                  <button
+                    key={star}
+                    onClick={() => handleRating(star)}
+                    className="transition-colors"
+                  >
+                    <Star 
+                      size={24} 
+                      className={star <= userRating ? "text-yellow-400" : "text-gray-400"} 
+                      fill={star <= userRating ? "currentColor" : "none"}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="border-b border-gray-700">
+              <div className="flex space-x-6">
+                {[
+                  { id: 'episodes', label: 'Episodes' },
+                  { id: 'comments', label: 'Comments' },
+                  { id: 'reviews', label: 'Reviews' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`pb-2 font-medium transition-colors ${
+                      activeTab === tab.id 
+                        ? 'text-purple-400 border-b-2 border-purple-400' 
+                        : currentTheme.textSecondary
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'episodes' && (
+              <div className="space-y-3">
+                {Array.from({length: anime.episodes}, (_, i) => (
+                  <div 
+                    key={i}
+                    onClick={() => navigate(`/watch/${anime.id}/${i + 1}`)}
+                    className={`${currentTheme.surface} p-4 rounded-lg cursor-pointer ${currentTheme.surfaceHover} transition-colors`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className={`${currentTheme.text} font-medium`}>Episode {i + 1}</h4>
+                        <p className={`${currentTheme.textSecondary} text-sm`}>Duration: 24 minutes</p>
+                      </div>
+                      <Play size={20} className={currentTheme.textSecondary} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {activeTab === 'comments' && (
+              <div className="space-y-4">
+                <div className={`${currentTheme.surface} p-4 rounded-lg`}>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder="Add a comment..."
+                    className={`w-full ${currentTheme.input} rounded-lg p-3 resize-none focus:ring-2 focus:ring-purple-500 focus:outline-none`}
+                    rows={3}
+                  />
+                  <button className="mt-3 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    Post Comment
+                  </button>
+                </div>
+                
+                {/* Mock Comments */}
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className={`${currentTheme.surface} p-4 rounded-lg`}>
+                      <div className="flex items-start space-x-3">
+                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face" alt="User" className="w-8 h-8 rounded-full" />
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className={`${currentTheme.text} font-medium`}>User {i}</span>
+                            <span className={`${currentTheme.textSecondary} text-sm`}>2 hours ago</span>
+                          </div>
+                          <p className={currentTheme.textSecondary}>This anime is absolutely amazing! The animation quality and story development are top-notch.</p>
+                          <div className="flex items-center space-x-4 mt-2">
+                            <button className="flex items-center space-x-1 text-sm text-gray-400 hover:text-purple-400">
+                              <ThumbsUp size={14} />
+                              <span>12</span>
+                            </button>
+                            <button className="text-sm text-gray-400 hover:text-purple-400">Reply</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            <div className={`${currentTheme.surface} p-4 rounded-lg`}>
+              <h3 className={`${currentTheme.text} font-bold mb-4`}>Anime Info</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className={currentTheme.textSecondary}>Status:</span>
+                  <span className={currentTheme.text}>{anime.status}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className={currentTheme.textSecondary}>Episodes:</span>
+                  <span className={currentTheme.text}>{anime.episodes}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className={currentTheme.textSecondary}>Year:</span>
+                  <span className={currentTheme.text}>{anime.year}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className={currentTheme.textSecondary}>Studio:</span>
+                  <span className={currentTheme.text}>{anime.studio}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className={currentTheme.textSecondary}>Views:</span>
+                  <span className={currentTheme.text}>{anime.views}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className={`${currentTheme.surface} p-4 rounded-lg`}>
+              <h3 className={`${currentTheme.text} font-bold mb-4`}>Related Anime</h3>
+              <div className="space-y-3">
+                {mockAnimeData.slice(0, 3).map(relatedAnime => (
+                  <div 
+                    key={relatedAnime.id}
+                    onClick={() => navigate(`/anime/${relatedAnime.id}`)}
+                    className={`flex space-x-3 cursor-pointer ${currentTheme.surfaceHover} p-2 rounded-lg transition-colors`}
+                  >
+                    <img src={relatedAnime.poster} alt={relatedAnime.title} className="w-16 h-20 object-cover rounded" />
+                    <div className="flex-1">
+                      <h4 className={`${currentTheme.text} font-medium text-sm line-clamp-2`}>{relatedAnime.title}</h4>
+                      <div className="flex items-center space-x-1 mt-1">
+                        <Star className="text-yellow-400" size={12} fill="currentColor" />
+                        <span className={`${currentTheme.textSecondary} text-xs`}>{relatedAnime.rating}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Watch Page Component
+  const WatchPage = () => {
+    const pathParts = currentPath.split('/');
+    const animeId = parseInt(pathParts[2]);
+    const episodeNum = parseInt(pathParts[3]);
+    const anime = mockAnimeData.find(a => a.id === animeId);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [showControls, setShowControls] = useState(true);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(1440); // 24 minutes in seconds
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [volume, setVolume] = useState(100);
+    const [quality, setQuality] = useState('1080p');
+    const [playbackSpeed, setPlaybackSpeed] = useState(1);
+    const [showComments, setShowComments] = useState(false);
+    const [newComment, setNewComment] = useState('');
+
+    if (!anime) return <div className={`${currentTheme.text} text-center py-8`}>Anime not found</div>;
+
+    const formatTime = (seconds) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const togglePlay = () => setIsPlaying(!isPlaying);
+    const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
+    
+    const nextEpisode = () => {
+      if (episodeNum < anime.episodes) {
+        navigate(`/watch/${animeId}/${episodeNum + 1}`);
+      }
+    };
+
+    const prevEpisode = () => {
+      if (episodeNum > 1) {
+        navigate(`/watch/${animeId}/${episodeNum - 1}`);
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Video Player */}
+        <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-black' : 'aspect-video'} bg-black rounded-lg overflow-hidden group`}>
+          {/* Video placeholder */}
+          <img 
+            src={anime.poster} 
+            alt={anime.title} 
+            className="w-full h-full object-cover opacity-50"
+          />
+          
+          {/* Play button overlay */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <button 
+              onClick={togglePlay}
+              className="w-20 h-20 bg-black/60 rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
+            >
+              <Play size={32} className="text-white ml-1" fill="currentColor" />
+            </button>
+          </div>
+
+          {/* Video Controls */}
+          <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 transition-opacity ${showControls ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            {/* Progress Bar */}
+            <div className="mb-4">
+              <div className="bg-gray-600 h-1 rounded-full cursor-pointer">
+                <div 
+                  className="bg-purple-500 h-1 rounded-full transition-all"
+                  style={{ width: `${(currentTime / duration) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button onClick={togglePlay} className="text-white hover:text-purple-400">
+                  {isPlaying ? <Pause size={20} /> : <Play size={20} fill="currentColor" />}
+                </button>
+                
+                <div className="flex items-center space-x-2">
+                  <button onClick={prevEpisode} disabled={episodeNum <= 1} className="text-white hover:text-purple-400 disabled:opacity-50">
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button onClick={nextEpisode} disabled={episodeNum >= anime.episodes} className="text-white hover:text-purple-400 disabled:opacity-50">
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+
+                <span className="text-white text-sm">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </span>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <select 
+                  value={playbackSpeed} 
+                  onChange={(e) => setPlaybackSpeed(parseFloat(e.target.value))}
+                  className="bg-black/60 text-white text-sm rounded px-2 py-1"
+                >
+                  <option value={0.5}>0.5x</option>
+                  <option value={0.75}>0.75x</option>
+                  <option value={1}>1x</option>
+                  <option value={1.25}>1.25x</option>
+                  <option value={1.5}>1.5x</option>
+                  <option value={2}>2x</option>
+                </select>
+
+                <select 
+                  value={quality} 
+                  onChange={(e) => setQuality(e.target.value)}
+                  className="bg-black/60 text-white text-sm rounded px-2 py-1"
+                >
+                  <option value="480p">480p</option>
+                  <option value="720p">720p</option>
+                  <option value="1080p">1080p</option>
+                  <option value="1440p">1440p</option>
+                  <option value="2160p">4K</option>
+                </select>
+
+                <button 
+                  onClick={() => setShowComments(!showComments)}
+                  className="text-white hover:text-purple-400"
+                >
+                  <MessageCircle size={20} />
+                </button>
+
+                <button onClick={toggleFullscreen} className="text-white hover:text-purple-400">
+                  <Maximize size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Episode Info */}
+            <div>
+              <h1 className={`${currentTheme.text} text-2xl font-bold mb-2`}>
+                {anime.title} - Episode {episodeNum}
+              </h1>
+              <div className="flex items-center space-x-4 text-sm mb-4">
+                <span className={currentTheme.textSecondary}>24 minutes</span>
+                <span className={currentTheme.textSecondary}>•</span>
+                <span className={currentTheme.textSecondary}>Released: March 15, 2024</span>
+                <span className={currentTheme.textSecondary}>•</span>
+                <div className="flex items-center space-x-1">
+                  <Eye size={14} className={currentTheme.textSecondary} />
+                  <span className={currentTheme.textSecondary}>2.3M views</span>
+                </div>
+              </div>
+              
+              <p className={currentTheme.textSecondary}>
+                In this thrilling episode, our heroes face their greatest challenge yet as the final battle approaches...
+              </p>
+            </div>
+
+            {/* Episode Navigation */}
+            <div className={`${currentTheme.surface} p-4 rounded-lg`}>
+              <h3 className={`${currentTheme.text} font-bold mb-4`}>Episodes</h3>
+              <div className="grid grid-cols-8 gap-2 max-h-40 overflow-y-auto">
+                {Array.from({length: anime.episodes}, (_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => navigate(`/watch/${animeId}/${i + 1}`)}
+                    className={`aspect-square rounded-lg text-sm font-medium transition-colors ${
+                      i + 1 === episodeNum 
+                        ? 'bg-purple-600 text-white' 
+                        : `${currentTheme.surface} border ${currentTheme.border} ${currentTheme.text} ${currentTheme.surfaceHover}`
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Comments Section */}
+            <div className={`${currentTheme.surface} p-4 rounded-lg`}>
+              <h3 className={`${currentTheme.text} font-bold mb-4`}>Comments ({showComments ? 'Hide' : 'Show'})</h3>
+              
+              {/* Comment Input */}
+              <div className="mb-6">
+                <div className="flex space-x-3">
+                  <img src={user?.avatar} alt={user?.name} className="w-10 h-10 rounded-full" />
+                  <div className="flex-1">
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Add a comment about this episode..."
+                      className={`w-full ${currentTheme.input} rounded-lg p-3 resize-none focus:ring-2 focus:ring-purple-500 focus:outline-none`}
+                      rows={3}
+                    />
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex space-x-2">
+                        <button className="text-xs text-gray-400 hover:text-purple-400">@mention</button>
+                        <button className="text-xs text-gray-400 hover:text-purple-400">emoji</button>
+                      </div>
+                      <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        Post
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Comments List */}
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="flex space-x-3">
+                    <img 
+                      src={`https://images.unsplash.com/photo-${1472099645785 + i}-5658abf4ff4e?w=40&h=40&fit=crop&crop=face`} 
+                      alt="User" 
+                      className="w-8 h-8 rounded-full" 
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className={`${currentTheme.text} font-medium text-sm`}>AnimeUser{i}</span>
+                        <span className={`${currentTheme.textSecondary} text-xs`}>{i * 2} minutes ago</span>
+                      </div>
+                      <p className={`${currentTheme.textSecondary} text-sm mb-2`}>
+                        {i === 1 && "This episode was absolutely incredible! The animation during the fight scene was mind-blowing 🔥"}
+                        {i === 2 && "I can't believe what just happened... My heart is still racing!"}
+                        {i === 3 && "The character development in this episode was phenomenal. Can't wait for the next one!"}
+                        {i === 4 && "Did anyone else notice the subtle callback to episode 3? Amazing attention to detail!"}
+                        {i === 5 && "The soundtrack during the final scene gave me chills. This anime keeps getting better!"}
+                      </p>
+                      <div className="flex items-center space-x-4">
+                        <button className="flex items-center space-x-1 text-xs text-gray-400 hover:text-purple-400">
+                          <ThumbsUp size={12} />
+                          <span>{Math.floor(Math.random() * 100) + 10}</span>
+                        </button>
+                        <button className="text-xs text-gray-400 hover:text-purple-400">Reply</button>
+                        <button className="text-xs text-gray-400 hover:text-purple-400">Report</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Up Next */}
+            <div className={`${currentTheme.surface} p-4 rounded-lg`}>
+              <h3 className={`${currentTheme.text} font-bold mb-4`}>Up Next</h3>
+              {episodeNum < anime.episodes && (
+                <div 
+                  onClick={nextEpisode}
+                  className={`flex space-x-3 cursor-pointer ${currentTheme.surfaceHover} p-3 rounded-lg transition-colors`}
+                >
+                  <img src={anime.poster} alt={anime.title} className="w-20 h-12 object-cover rounded" />
+                  <div className="flex-1">
+                    <h4 className={`${currentTheme.text} font-medium text-sm`}>Episode {episodeNum + 1}</h4>
+                    <p className={`${currentTheme.textSecondary} text-xs`}>24 minutes</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* More Episodes */}
+            <div className={`${currentTheme.surface} p-4 rounded-lg`}>
+              <h3 className={`${currentTheme.text} font-bold mb-4`}>More Episodes</h3>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {Array.from({length: Math.min(10, anime.episodes)}, (_, i) => (
+                  <div 
+                    key={i}
+                    onClick={() => navigate(`/watch/${animeId}/${i + 1}`)}
+                    className={`flex items-center space-x-3 cursor-pointer p-2 rounded-lg transition-colors ${
+                      i + 1 === episodeNum ? 'bg-purple-600/20' : currentTheme.surfaceHover
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold ${
+                      i + 1 === episodeNum ? 'bg-purple-600 text-white' : `${currentTheme.surface} ${currentTheme.text}`
+                    }`}>
+                      {i + 1}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className={`${currentTheme.text} text-sm font-medium`}>Episode {i + 1}</h4>
+                      <p className={`${currentTheme.textSecondary} text-xs`}>24 min</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Related Anime */}
+            <div className={`${currentTheme.surface} p-4 rounded-lg`}>
+              <h3 className={`${currentTheme.text} font-bold mb-4`}>You might also like</h3>
+              <div className="space-y-3">
+                {mockAnimeData.filter(a => a.id !== animeId).slice(0, 3).map(relatedAnime => (
+                  <div 
+                    key={relatedAnime.id}
+                    onClick={() => navigate(`/anime/${relatedAnime.id}`)}
+                    className={`flex space-x-3 cursor-pointer ${currentTheme.surfaceHover} p-2 rounded-lg transition-colors`}
+                  >
+                    <img src={relatedAnime.poster} alt={relatedAnime.title} className="w-16 h-20 object-cover rounded" />
+                    <div className="flex-1">
+                      <h4 className={`${currentTheme.text} font-medium text-sm line-clamp-2`}>{relatedAnime.title}</h4>
+                      <div className="flex items-center space-x-1 mt-1">
+                        <Star className="text-yellow-400" size={12} fill="currentColor" />
+                        <span className={`${currentTheme.textSecondary} text-xs`}>{relatedAnime.rating}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Profile Page Component  
+  const ProfilePage = () => {
+    const [activeTab, setActiveTab] = useState('overview');
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState({
+      name: user?.name || '',
+      bio: 'Anime enthusiast who loves action and fantasy series!',
+      favoriteGenres: ['Action', 'Fantasy', 'Drama']
+    });
+
+    const stats = {
+      watchedEpisodes: 1247,
+      completedSeries: 89,
+      hoursWatched: 623,
+      averageRating: 8.4
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Profile Header */}
+        <div className={`${currentTheme.surface} p-6 rounded-lg`}>
+          <div className="flex items-start space-x-6">
+            <div className="relative">
+              <img src={user?.avatar} alt={user?.name} className="w-24 h-24 rounded-full" />
+              <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white"></div>
+            </div>
+            
+            <div className="flex-1">
+              {isEditing ? (
+                <div className="space-y-4">
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                    className={`${currentTheme.input} rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none`}
+                  />
+                  <textarea
+                    value={editForm.bio}
+                    onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
+                    className={`w-full ${currentTheme.input} rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none`}
+                    rows={3}
+                  />
+                  <div className="flex space-x-2">
+                    <button 
+                      onClick={() => setIsEditing(false)}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Save Changes
+                    </button>
+                    <button 
+                      onClick={() => setIsEditing(false)}
+                      className={`${currentTheme.surface} border ${currentTheme.border} ${currentTheme.text} px-4 py-2 rounded-lg ${currentTheme.surfaceHover} transition-colors`}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center space-x-3 mb-2">
+                    <h1 className={`${currentTheme.text} text-2xl font-bold`}>{user?.name}</h1>
+                    <span className="px-2 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-full">
+                      {user?.subscription}
+                    </span>
+                  </div>
+                  <p className={`${currentTheme.textSecondary} mb-4`}>{editForm.bio}</p>
+                  <button 
+                    onClick={() => setIsEditing(true)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Edit Profile
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-700">
+            <div className="text-center">
+              <div className={`${currentTheme.text} text-2xl font-bold`}>{stats.watchedEpisodes}</div>
+              <div className={`${currentTheme.textSecondary} text-sm`}>Episodes Watched</div>
+            </div>
+            <div className="text-center">
+              <div className={`${currentTheme.text} text-2xl font-bold`}>{stats.completedSeries}</div>
+              <div className={`${currentTheme.textSecondary} text-sm`}>Series Completed</div>
+            </div>
+            <div className="text-center">
+              <div className={`${currentTheme.text} text-2xl font-bold`}>{stats.hoursWatched}</div>
+              <div className={`${currentTheme.textSecondary} text-sm`}>Hours Watched</div>
+            </div>
+            <div className="text-center">
+              <div className={`${currentTheme.text} text-2xl font-bold`}>{stats.averageRating}</div>
+              <div className={`${currentTheme.textSecondary} text-sm`}>Avg Rating</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="border-b border-gray-700">
+          <div className="flex space-x-6">
+            {[
+              { id: 'overview', label: 'Overview' },
+              { id: 'watchlist', label: 'Watchlist' },
+              { id: 'history', label: 'History' },
+              { id: 'reviews', label: 'Reviews' },
+              { id: 'settings', label: 'Settings' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`pb-2 font-medium transition-colors ${
+                  activeTab === tab.id 
+                    ? 'text-purple-400 border-b-2 border-purple-400' 
+                    : currentTheme.textSecondary
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className={`${currentTheme.surface} p-6 rounded-lg`}>
+              <h3 className={`${currentTheme.text} font-bold mb-4`}>Recently Watched</h3>
+              <div className="space-y-3">
+                {mockAnimeData.slice(0, 3).map(anime => (
+                  <div key={anime.id} className="flex space-x-3">
+                    <img src={anime.poster} alt={anime.title} className="w-16 h-20 object-cover rounded" />
+                    <div className="flex-1">
+                      <h4 className={`${currentTheme.text} font-medium text-sm`}>{anime.title}</h4>
+                      <p className={`${currentTheme.textSecondary} text-xs`}>Episode 5 • 2 hours ago</p>
+                      <div className="w-full bg-gray-600 h-1 rounded-full mt-2">
+                        <div className="bg-purple-500 h-1 rounded-full" style={{width: '60%'}}></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className={`${currentTheme.surface} p-6 rounded-lg`}>
+              <h3 className={`${currentTheme.text} font-bold mb-4`}>Favorite Genres</h3>
+              <div className="flex flex-wrap gap-2">
+                {editForm.favoriteGenres.map(genre => (
+                  <span key={genre} className="px-3 py-1 bg-purple-600/20 text-purple-400 rounded-full text-sm">
+                    {genre}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className={`${currentTheme.surface} p-6 rounded-lg space-y-6`}>
+            <div>
+              <h3 className={`${currentTheme.text} font-bold mb-4`}>Preferences</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className={currentTheme.text}>Email Notifications</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" defaultChecked className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                  </label>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className={currentTheme.text}>Auto-play Next Episode</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" defaultChecked className="sr-only peer" />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                  </label>
+                </div>
+
+                <div>
+                  <label className={`${currentTheme.text} block mb-2`}>Default Quality</label>
+                  <select className={`${currentTheme.input} rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none`}>
+                    <option value="auto">Auto</option>
+                    <option value="2160p">4K (2160p)</option>
+                    <option value="1440p">1440p</option>
+                    <option value="1080p">1080p</option>
+                    <option value="720p">720p</option>
+                    <option value="480p">480p</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`${currentTheme.text} block mb-2`}>Language Preference</label>
+                  <select className={`${currentTheme.input} rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none`}>
+                    <option value="sub">Subtitled (Original)</option>
+                    <option value="dub">Dubbed (English)</option>
+                    <option value="both">Both Available</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-700 pt-6">
+              <h3 className={`${currentTheme.text} font-bold mb-4`}>Account</h3>
+              <div className="space-y-3">
+                <button className="w-full text-left px-4 py-3 bg-purple-600/10 text-purple-400 rounded-lg hover:bg-purple-600/20 transition-colors">
+                  Manage Subscription
+                </button>
+                <button className="w-full text-left px-4 py-3 bg-gray-600/10 text-gray-400 rounded-lg hover:bg-gray-600/20 transition-colors">
+                  Export Data
+                </button>
+                <button className="w-full text-left px-4 py-3 bg-red-600/10 text-red-400 rounded-lg hover:bg-red-600/20 transition-colors">
+                  Delete Account
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Route renderer
+  const renderPage = () => {
+    if (currentPath === '/') return <HomePage />;
+    if (currentPath.startsWith('/anime/')) return <AnimeDetailPage />;
+    if (currentPath.startsWith('/watch/')) return <WatchPage />;
+    if (currentPath === '/profile') return <ProfilePage />;
+    if (currentPath === '/watchlist') return <WatchlistPage />;
+    if (currentPath === '/history') return <HistoryPage />;
+    if (currentPath === '/trending') return <TrendingPage />;
+    if (currentPath === '/genres') return <GenresPage />;
+    return <HomePage />;
+  };
+
+  // Watchlist Page
+  const WatchlistPage = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className={`${currentTheme.text} text-3xl font-bold`}>My Watchlist</h1>
+        <div className="flex items-center space-x-4">
+          <select className={`${currentTheme.input} rounded-lg px-4 py-2`}>
+            <option>All Status</option>
+            <option>Watching</option>
+            <option>Plan to Watch</option>
+            <option>Completed</option>
+            <option>Dropped</option>
+          </select>
+          <button
+            onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+            className={`p-2 rounded-lg ${currentTheme.accent} text-white`}
+          >
+            {viewMode === 'grid' ? <List size={20} /> : <Grid size={20} />}
+          </button>
+        </div>
+      </div>
+
+      {watchlist.length === 0 ? (
+        <div className={`${currentTheme.surface} rounded-lg p-12 text-center`}>
+          <Bookmark size={48} className={`${currentTheme.textSecondary} mx-auto mb-4`} />
+          <h3 className={`${currentTheme.text} text-xl font-bold mb-2`}>Your watchlist is empty</h3>
+          <p className={`${currentTheme.textSecondary} mb-4`}>Add anime to your watchlist to keep track of what you want to watch</p>
+          <button 
+            onClick={() => navigate('/')}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
+          >
+            Browse Anime
+          </button>
+        </div>
+      ) : (
+        <div className={viewMode === 'grid' 
+          ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6"
+          : "space-y-4"
+        }>
+          {mockAnimeData.map(anime => (
+            <AnimeCard key={anime.id} anime={anime} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  // History Page
+  const HistoryPage = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className={`${currentTheme.text} text-3xl font-bold`}>Watch History</h1>
+        <button className={`${currentTheme.textSecondary} hover:text-purple-400 transition-colors`}>
+          Clear All History
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        {mockAnimeData.map((anime, index) => (
+          <div key={anime.id} className={`${currentTheme.surface} p-4 rounded-lg`}>
+            <div className="flex items-center space-x-4">
+              <img src={anime.poster} alt={anime.title} className="w-16 h-20 object-cover rounded" />
+              <div className="flex-1">
+                <h3 className={`${currentTheme.text} font-bold`}>{anime.title}</h3>
+                <p className={`${currentTheme.textSecondary} text-sm mb-2`}>Episode {index + 5} • Watched 2 days ago</p>
+                <div className="w-full bg-gray-600 h-2 rounded-full">
+                  <div className="bg-purple-500 h-2 rounded-full" style={{width: `${70 + (index * 10)}%`}}></div>
+                </div>
+                <p className={`${currentTheme.textSecondary} text-xs mt-1`}>{70 + (index * 10)}% complete</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button 
+                  onClick={() => navigate(`/watch/${anime.id}/${index + 5}`)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Continue Watching
+                </button>
+                <button className={`p-2 ${currentTheme.surfaceHover} rounded-lg transition-colors`}>
+                  <X size={16} className={currentTheme.textSecondary} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Trending Page
+  const TrendingPage = () => (
+    <div className="space-y-6">
+      <h1 className={`${currentTheme.text} text-3xl font-bold`}>Trending Now</h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <h2 className={`${currentTheme.text} text-xl font-bold mb-4`}>Most Popular This Week</h2>
+          <div className="space-y-4">
+            {mockAnimeData.map((anime, index) => (
+              <div key={anime.id} className={`${currentTheme.surface} p-4 rounded-lg flex items-center space-x-4`}>
+                <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${
+                  index === 0 ? 'from-yellow-400 to-yellow-600' :
+                  index === 1 ? 'from-gray-300 to-gray-500' :
+                  index === 2 ? 'from-amber-600 to-amber-800' :
+                  'from-purple-400 to-purple-600'
+                } flex items-center justify-center font-bold text-white text-sm`}>
+                  {index + 1}
+                </div>
+                <img src={anime.poster} alt={anime.title} className="w-16 h-20 object-cover rounded" />
+                <div className="flex-1">
+                  <h3 className={`${currentTheme.text} font-bold`}>{anime.title}</h3>
+                  <p className={`${currentTheme.textSecondary} text-sm`}>{anime.views} views this week</p>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <Star className="text-yellow-400" size={14} fill="currentColor" />
+                    <span className={`${currentTheme.text} text-sm`}>{anime.rating}</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => navigate(`/anime/${anime.id}`)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  View
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className={`${currentTheme.surface} p-4 rounded-lg`}>
+            <h3 className={`${currentTheme.text} font-bold mb-4`}>Trending Genres</h3>
+            <div className="space-y-2">
+              {['Action', 'Romance', 'Fantasy', 'Slice of Life', 'Horror'].map((genre, index) => (
+                <div key={genre} className="flex items-center justify-between">
+                  <span className={currentTheme.text}>{genre}</span>
+                  <span className={`${currentTheme.textSecondary} text-sm`}>+{20 - index * 3}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={`${currentTheme.surface} p-4 rounded-lg`}>
+            <h3 className={`${currentTheme.text} font-bold mb-4`}>New Releases</h3>
+            <div className="space-y-3">
+              {mockAnimeData.slice(0, 3).map(anime => (
+                <div key={anime.id} className="flex space-x-3 cursor-pointer" onClick={() => navigate(`/anime/${anime.id}`)}>
+                  <img src={anime.poster} alt={anime.title} className="w-12 h-16 object-cover rounded" />
+                  <div className="flex-1">
+                    <h4 className={`${currentTheme.text} font-medium text-sm line-clamp-2`}>{anime.title}</h4>
+                    <p className={`${currentTheme.textSecondary} text-xs`}>Episode 1 available now</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Genres Page
+  const GenresPage = () => {
+    const genres = [
+      { name: 'Action', count: 234, color: 'from-red-500 to-red-700', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop' },
+      { name: 'Romance', count: 187, color: 'from-pink-500 to-pink-700', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop' },
+      { name: 'Fantasy', count: 298, color: 'from-purple-500 to-purple-700', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop' },
+      { name: 'Comedy', count: 156, color: 'from-yellow-500 to-yellow-700', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop' },
+      { name: 'Drama', count: 203, color: 'from-blue-500 to-blue-700', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop' },
+      { name: 'Sci-Fi', count: 134, color: 'from-cyan-500 to-cyan-700', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop' },
+      { name: 'Horror', count: 89, color: 'from-gray-700 to-gray-900', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop' },
+      { name: 'Sports', count: 67, color: 'from-green-500 to-green-700', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=200&fit=crop' }
+    ];
+
+    return (
+      <div className="space-y-6">
+        <h1 className={`${currentTheme.text} text-3xl font-bold`}>Browse by Genre</h1>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {genres.map(genre => (
+            <div 
+              key={genre.name}
+              className="group cursor-pointer transform transition-all duration-300 hover:scale-105"
+              onClick={() => {
+                setSelectedGenre(genre.name);
+                navigate('/');
+              }}
+            >
+              <div className="relative h-32 rounded-lg overflow-hidden">
+                <img src={genre.image} alt={genre.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                <div className={`absolute inset-0 bg-gradient-to-r ${genre.color} opacity-80`} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <h3 className="text-xl font-bold mb-1">{genre.name}</h3>
+                    <p className="text-sm opacity-90">{genre.count} anime</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12">
+          <h2 className={`${currentTheme.text} text-2xl font-bold mb-6`}>Popular in Each Genre</h2>
+          <div className="space-y-8">
+            {genres.slice(0, 3).map(genre => (
+              <div key={genre.name}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`${currentTheme.text} text-xl font-bold`}>{genre.name}</h3>
+                  <button 
+                    onClick={() => {
+                      setSelectedGenre(genre.name);
+                      navigate('/');
+                    }}
+                    className="text-purple-400 hover:text-purple-300 text-sm font-medium"
+                  >
+                    View all →
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {mockAnimeData.slice(0, 6).map(anime => (
+                    <AnimeCard key={`${genre.name}-${anime.id}`} anime={anime} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme, currentTheme }}>
+      <div className={`min-h-screen ${currentTheme.bg} transition-colors duration-300`}>
+        <Sidebar />
+        <div className="lg:ml-64">
+          <Header />
+          <main className="p-6">
+            {renderPage()}
+          </main>
+        </div>
+
+        {/* Mobile overlay */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Notification Toast */}
+        {notifications.length > 0 && (
+          <div className="fixed top-4 right-4 z-50 space-y-2">
+            {notifications.map((notification, index) => (
+              <div key={index} className="bg-purple-600 text-white px-4 py-3 rounded-lg shadow-lg max-w-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">{notification.message}</span>
+                  <button onClick={() => setNotifications(prev => prev.filter((_, i) => i !== index))}>
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Loading Skeleton (shown during transitions) */}
+        <div className="fixed inset-0 bg-black/50 z-50 hidden" id="loading-overlay">
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500"></div>
+          </div>
+        </div>
+
+        {/* Bottom Navigation for Mobile */}
+        <div className="fixed bottom-0 left-0 right-0 lg:hidden bg-gray-800 border-t border-gray-700 z-40">
+          <div className="grid grid-cols-5 gap-1">
+            {[
+              { path: '/', icon: Home, label: 'Home' },
+              { path: '/trending', icon: Tv, label: 'Trending' },
+              { path: '/genres', icon: Grid, label: 'Genres' },
+              { path: '/watchlist', icon: Bookmark, label: 'Watchlist' },
+              { path: '/profile', icon: User, label: 'Profile' }
+            ].map(({ path, icon: Icon, label }) => (
+              <button
+                key={path}
+                onClick={() => navigate(path)}
+                className={`flex flex-col items-center justify-center p-3 text-xs ${
+                  currentPath === path 
+                    ? 'text-purple-400 bg-purple-600/20' 
+                    : 'text-gray-400'
+                }`}
+              >
+                <Icon size={20} />
+                <span className="mt-1">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </ThemeContext.Provider>
+  );
+};
+
+// Add missing icons
+const Pause = ({ size, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <rect x="6" y="4" width="4" height="16"/>
+    <rect x="14" y="4" width="4" height="16"/>
+  </svg>
+);
+
+const ChevronLeft = ({ size, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <polyline points="15,18 9,12 15,6"></polyline>
+  </svg>
+);
+
+const Maximize = ({ size, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+  </svg>
+);
+
+export default AnimeStreamingApp;
+                    
