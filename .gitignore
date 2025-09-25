@@ -1,0 +1,9 @@
+node_modules/
+.next/
+out/
+build/
+.env*
+*.log
+.vercel
+.DS_Store
+Thumbs.db
